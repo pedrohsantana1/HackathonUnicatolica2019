@@ -18,9 +18,8 @@ public class Jogo extends ApplicationAdapter {
 	private Texture[] fundo;
 	private Texture[] personagem;
 	private Texture[] alimento;
-	private BitmapFont textoEstado0;
-	private BitmapFont textoEstado1;
-	private BitmapFont textoEstado2;
+	private BitmapFont textoScore;
+
 	private Texture textoProducao;
 	private Texture textoEntrega;
 	private Texture textoChegou;
@@ -42,6 +41,8 @@ public class Jogo extends ApplicationAdapter {
 	private int estado = 0;
 	private float contador;
 	private double tempoInicial;
+	private int pontos = 0;
+	private boolean teste = false;
 
 	@Override
 	public void create () {
@@ -56,15 +57,10 @@ public class Jogo extends ApplicationAdapter {
 		posPersonagemY = alturaDispositivo/2 - alturaDispositivo/4;
 		posicaoTela = larguraDispositivo;
 		random = new Random();
-		textoEstado0 = new BitmapFont();
-		textoEstado0.setColor(com.badlogic.gdx.graphics.Color.WHITE);
-		textoEstado0.getData().setScale(3);
-		textoEstado1 = new BitmapFont();
-		textoEstado1.setColor(com.badlogic.gdx.graphics.Color.WHITE);
-		textoEstado1.getData().setScale(3);
-		textoEstado2 = new BitmapFont();
-		textoEstado2.setColor(com.badlogic.gdx.graphics.Color.WHITE);
-		textoEstado2.getData().setScale(3);
+		textoScore = new BitmapFont();
+		textoScore.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+		textoScore.getData().setScale(5);
+
 		shapeRenderer = new ShapeRenderer();
 		circuloPersonagem = new Circle();
 		circuloAlimento = new Circle();
@@ -87,6 +83,7 @@ public class Jogo extends ApplicationAdapter {
 		textoProducao = new Texture("textoProducao.png");
 		textoEntrega = new Texture("textoEntrega.png");
 		textoChegou = new Texture("textoChegou.png");
+
 	}
 
 	@Override
@@ -155,6 +152,7 @@ public class Jogo extends ApplicationAdapter {
 		if(posicaoTela <= 0){
 			posicaoTela = larguraDispositivo;
 			posicaoFruta = random.nextInt((int) alturaDispositivo-alimento[0].getHeight()-textoProducao.getHeight());
+
 		}
 	}
 
@@ -173,10 +171,11 @@ public class Jogo extends ApplicationAdapter {
 			case 0:
 				//textoEstado0.draw(batch, "Seu pedido está em produção", 0, (int)(alturaDispositivo*0.9));
 				batch.draw(fundo[0],posicaoTela,0, larguraDispositivo, alturaDispositivo);
-				batch.draw(fundo[0],posicaoTela-larguraDispositivo,0, larguraDispositivo, alturaDispositivo);
+				batch.draw(fundo[0],posicaoTela-larguraDispositivo,0,larguraDispositivo/2 - textoProducao.getWidth()/2 +larguraDispositivo, alturaDispositivo);
 				batch.draw(textoProducao,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
 				batch.draw(personagem[0], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
 				batch.draw(alimento[0], posicaoTela, posicaoFruta);
+				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
 
 				break;
 			case 1:
@@ -185,12 +184,14 @@ public class Jogo extends ApplicationAdapter {
 				batch.draw(textoEntrega,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
 				batch.draw(personagem[1], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
 				batch.draw(alimento[1], posicaoTela, posicaoFruta);
+				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
 
 				break;
 			case 2:
 				batch.draw(fundo[2],0,0, larguraDispositivo, alturaDispositivo);
 				batch.draw(textoChegou,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
 				batch.draw(personagem[2], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
+				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
 				break;
 		}
 
@@ -209,17 +210,19 @@ public class Jogo extends ApplicationAdapter {
 		boolean colidiuObjetos = Intersector.overlaps(circuloPersonagem, circuloAlimento);
 
 		if(colidiuObjetos){
+				pontos++;
 
-		}
 		/*
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 		shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.BLACK);
 
 		shapeRenderer.circle( larguraDispositivo/2 - personagem[bg].getWidth()/2, posPersonagemY + personagem[bg].getHeight()/2, personagem[bg].getHeight()/2);
 		shapeRenderer.circle( posicaoTela + alimento[bg].getWidth()/2 , posicaoFruta + alimento[bg].getHeight()/2, alimento[bg].getWidth()/2);
-		*/
+
 
 		shapeRenderer.end();
+		*/
 	}
 
+}
 }
