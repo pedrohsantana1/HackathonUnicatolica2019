@@ -9,20 +9,22 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Intersector;
 
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Timer;
 
 public class Jogo extends ApplicationAdapter {
+	private Random random;
 	//Texturas
 	private SpriteBatch batch;
 	private Texture[] fundo;
 	private Texture[] personagem;
 	private Texture[] alimento;
 	private BitmapFont textoScore;
-
 	private Texture textoProducao;
 	private Texture textoEntrega;
 	private Texture textoChegou;
+	private ArrayList<Item> itens;
 
 	//Formas para colisao
 	private ShapeRenderer shapeRenderer;
@@ -33,16 +35,22 @@ public class Jogo extends ApplicationAdapter {
 	private float larguraDispositivo;
 	private float alturaDispositivo;
 	private float gravidade = 0;
-	private float posPersonagemY;
-	private float posicaoTela = 0;
-	private Random random;
-	private int posicaoFruta;
-	private int bg = 0;
-	private int estado = 0;
-	private float contador;
-	private double tempoInicial;
+	private int estadoBg = 0;
+	private int estadoJogo = 0;
 	private int pontos = 0;
+	private int velocidade = 3;
+
+	private float posPersonagemY;
+	private float posTelaX = 0;
+	private float posAlimentoX;
+	private int posAlimentoY;
+
+	private double tempoInicial;
+	private float tempoTotal;
+	private double tempoInicialItem;
+
 	private boolean teste = false;
+	
 
 	@Override
 	public void create () {
@@ -55,7 +63,8 @@ public class Jogo extends ApplicationAdapter {
 		larguraDispositivo = Gdx.graphics.getWidth();
 		alturaDispositivo = Gdx.graphics.getHeight();
 		posPersonagemY = alturaDispositivo/2 - alturaDispositivo/4;
-		posicaoTela = larguraDispositivo;
+		posTelaX = larguraDispositivo;
+		posAlimentoX = larguraDispositivo;
 		random = new Random();
 		textoScore = new BitmapFont();
 		textoScore.setColor(com.badlogic.gdx.graphics.Color.WHITE);
@@ -64,6 +73,8 @@ public class Jogo extends ApplicationAdapter {
 		shapeRenderer = new ShapeRenderer();
 		circuloPersonagem = new Circle();
 		circuloAlimento = new Circle();
+		itens = new ArrayList<Item>();
+
 
 	}
 
@@ -83,41 +94,59 @@ public class Jogo extends ApplicationAdapter {
 		textoProducao = new Texture("textoProducao.png");
 		textoEntrega = new Texture("textoEntrega.png");
 		textoChegou = new Texture("textoChegou.png");
-
 	}
 
 	@Override
 	public void render () {
 
-		verificarEstadoJogo();
+		verificarestadoJogoJogo();
 		detectarColisoes();
 	}
 
-	private void verificarEstadoJogo(){
+	private void verificarestadoJogoJogo(){
+
 		batch.begin();
-		switch(estado){
+		switch(estadoJogo){
 			case 0: // init
-				contador = 7*1000;
+				tempoTotal = 20000;
 				tempoInicial = System.currentTimeMillis();
-				estado = 1;
+				tempoInicialItem = System.currentTimeMillis();
+				
+				estadoJogo = 1;
 				break;
 			case 1: // Em produção
-				if(System.currentTimeMillis() - tempoInicial >= contador){
-					contador = 7*1000;
-					tempoInicial = System.currentTimeMillis();
-					estado = 2;
-					bg = 1;
+				if (System.currentTimeMillis() - tempoInicialItem >= 1000){
+					tempoInicialItem = System.currentTimeMillis();
+					novoAlimento(random.nextInt( (int)(larguraDispositivo) ), (int)(alturaDispositivo), random.nextInt(3));
 				}
+				for (Item item : itens) {
+
+					if(item.y - velocidade< 0 - alimento[0].getHeight())
+					{
+						itens.remove(item);
+					}
+					item.y -= velocidade;
+
+				}
+				if(System.currentTimeMillis() - tempoInicial >= tempoTotal){
+					tempoTotal = 7000;
+					tempoInicial = System.currentTimeMillis();
+					estadoJogo = 2;
+					estadoBg = 1;
+				}
+				posAlimentoX -= velocidade;
 				break;
 			case 2: // Em entrega
-				if(System.currentTimeMillis() - tempoInicial >= contador){
-					contador = 7*1000;
+				if(System.currentTimeMillis() - tempoInicial >= tempoTotal){
+					tempoTotal = 7000;
 					tempoInicial = System.currentTimeMillis();
-					estado = 3;
-					bg = 2;
+					estadoJogo = 3;
+					estadoBg = 2;
 				}
+				posAlimentoX -= velocidade;
 				break;
 			case 3: // Chegou
+				
 				break;
 		}
 
@@ -125,12 +154,11 @@ public class Jogo extends ApplicationAdapter {
 
 		if( toqueTela ){
 			gravidade = 25;
-			//bg = (bg==2)?0:++bg;
+			//estadoBg = (estadoBg==2)?0:++estadoBg;
 		}
 
 		if(posPersonagemY > 0 || toqueTela ) {
-			if(posPersonagemY + gravidade <=0)
-			{
+			if(posPersonagemY + gravidade <=0){
 				posPersonagemY = 0;
 			}
 			else {
@@ -146,13 +174,44 @@ public class Jogo extends ApplicationAdapter {
 		batch.end();
 
 	}
+
+	private void detectarColisoes() {
+		circuloPersonagem.set(
+				larguraDispositivo / 2 - personagem[estadoBg].getWidth() / 2, posPersonagemY + personagem[estadoBg].getHeight() / 2, personagem[estadoBg].getHeight() / 2
+		);
+		circuloAlimento.set(
+				posAlimentoX + alimento[estadoBg].getWidth() / 2, posAlimentoY + alimento[estadoBg].getHeight() / 2, alimento[estadoBg].getWidth() / 2
+		);
+		boolean colidiuObjetos = Intersector.overlaps(circuloPersonagem, circuloAlimento);
+
+		if (colidiuObjetos) {
+			pontos++;
+//			novoAlimento();
+
+		/*
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.BLACK);
+
+		shapeRenderer.circle( larguraDispositivo/2 - personagem[estadoBg].getWidth()/2, posPersonagemY + personagem[estadoBg].getHeight()/2, personagem[estadoBg].getHeight()/2);
+		shapeRenderer.circle( posTelaX + alimento[estadoBg].getWidth()/2 , posAlimentoY + alimento[estadoBg].getHeight()/2, alimento[estadoBg].getWidth()/2);
+
+
+		shapeRenderer.end();
+		*/
+		}
+	}
+	private void novoAlimento(int x, int y, int type){
+		itens.add(new Item(x, y, type));
+		
+		
+		posAlimentoX = larguraDispositivo;
+		posAlimentoY = random.nextInt((int) alturaDispositivo-alimento[0].getHeight()-textoProducao.getHeight());
+	}
 	private void movimentarFundo(){
 		//Movimentar fundo
-		posicaoTela = posicaoTela - Gdx.graphics.getDeltaTime()*200;
-		if(posicaoTela <= 0){
-			posicaoTela = larguraDispositivo;
-			posicaoFruta = random.nextInt((int) alturaDispositivo-alimento[0].getHeight()-textoProducao.getHeight());
-
+		posTelaX -= velocidade;
+		if(posTelaX <= 0){
+			posTelaX = larguraDispositivo;
 		}
 	}
 
@@ -163,27 +222,27 @@ public class Jogo extends ApplicationAdapter {
 
 
 	private void desenharTexturas(){
-
-
-
-
-		switch (bg){
+		switch (estadoBg){
 			case 0:
-				//textoEstado0.draw(batch, "Seu pedido está em produção", 0, (int)(alturaDispositivo*0.9));
-				batch.draw(fundo[0],posicaoTela,0, larguraDispositivo, alturaDispositivo);
-				batch.draw(fundo[0],posicaoTela-larguraDispositivo,0,larguraDispositivo/2 - textoProducao.getWidth()/2 +larguraDispositivo, alturaDispositivo);
+				//textoestadoJogo0.draw(batch, "Seu pedido está em produção", 0, (int)(alturaDispositivo*0.9));
+				batch.draw(fundo[0],posTelaX,0, larguraDispositivo, alturaDispositivo);
+				batch.draw(fundo[0],posTelaX-larguraDispositivo,0,larguraDispositivo, alturaDispositivo);
+				//batch.draw(fundo[0],posTelaX-larguraDispositivo,0,larguraDispositivo/2 - textoProducao.getWidth()/2 +larguraDispositivo, alturaDispositivo);
 				batch.draw(textoProducao,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
 				batch.draw(personagem[0], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
-				batch.draw(alimento[0], posicaoTela, posicaoFruta);
+				batch.draw(alimento[0], posAlimentoX, posAlimentoY);
+				for(Item item: itens){
+					batch.draw(alimento[item.type],item.x, item.y);
+				}
 				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
 
 				break;
 			case 1:
-				batch.draw(fundo[1],posicaoTela,0, larguraDispositivo, alturaDispositivo);
-				batch.draw(fundo[1],posicaoTela-larguraDispositivo,0, larguraDispositivo, alturaDispositivo);
+				batch.draw(fundo[1],posTelaX,0, larguraDispositivo, alturaDispositivo);
+				batch.draw(fundo[1],posTelaX-larguraDispositivo,0, larguraDispositivo, alturaDispositivo);
 				batch.draw(textoEntrega,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
 				batch.draw(personagem[1], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
-				batch.draw(alimento[1], posicaoTela, posicaoFruta);
+				batch.draw(alimento[1], posAlimentoX, posAlimentoY);
 				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
 
 				break;
@@ -194,35 +253,5 @@ public class Jogo extends ApplicationAdapter {
 				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
 				break;
 		}
-
-
-
-
 	}
-
-	private void detectarColisoes() {
-		circuloPersonagem.set(
-				larguraDispositivo / 2 - personagem[bg].getWidth() / 2, posPersonagemY + personagem[bg].getHeight() / 2, personagem[bg].getHeight() / 2
-		);
-		circuloAlimento.set(
-				posicaoTela + alimento[bg].getWidth() / 2, posicaoFruta + alimento[bg].getHeight() / 2, alimento[bg].getWidth() / 2
-		);
-		boolean colidiuObjetos = Intersector.overlaps(circuloPersonagem, circuloAlimento);
-
-		if(colidiuObjetos){
-				pontos++;
-
-		/*
-		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-		shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.BLACK);
-
-		shapeRenderer.circle( larguraDispositivo/2 - personagem[bg].getWidth()/2, posPersonagemY + personagem[bg].getHeight()/2, personagem[bg].getHeight()/2);
-		shapeRenderer.circle( posicaoTela + alimento[bg].getWidth()/2 , posicaoFruta + alimento[bg].getHeight()/2, alimento[bg].getWidth()/2);
-
-
-		shapeRenderer.end();
-		*/
-	}
-
-}
 }
