@@ -3,7 +3,10 @@ package com.pedro.game;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
+import java.util.Random;
 
 public class Jogo extends ApplicationAdapter {
 	//Texturas
@@ -11,14 +14,21 @@ public class Jogo extends ApplicationAdapter {
 	private Texture[] fundo;
 	private Texture[] personagem;
 	private Texture pequi;
+	private BitmapFont textoEstado0;
+	private BitmapFont textoEstado1;
+	private BitmapFont textoEstado2;
+
 
 
 	//Atributos de configuração
 	private float larguraDispositivo;
 	private float alturaDispositivo;
 	private float gravidade = 0;
-	private float posicaoInicialVerticalPersonagem;
+	private float posPersonagemY;
 	private float posicaoTela = 0;
+	private Random random;
+	private int posicaoFruta;
+	private int bg = 0;
 
 	@Override
 	public void create () {
@@ -32,8 +42,18 @@ public class Jogo extends ApplicationAdapter {
 		batch = new SpriteBatch();
 		larguraDispositivo = Gdx.graphics.getWidth();
 		alturaDispositivo = Gdx.graphics.getHeight();
-		posicaoInicialVerticalPersonagem = alturaDispositivo/2 - alturaDispositivo/4;
+		posPersonagemY = alturaDispositivo/2 - alturaDispositivo/4;
 		posicaoTela = larguraDispositivo;
+		random = new Random();
+		textoEstado0 = new BitmapFont();
+		textoEstado0.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+		textoEstado0.getData().setScale(3);
+		textoEstado1 = new BitmapFont();
+		textoEstado1.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+		textoEstado1.getData().setScale(3);
+		textoEstado2 = new BitmapFont();
+		textoEstado2.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+		textoEstado2.getData().setScale(3);
 	}
 
 	private void inicializarTexturas(){
@@ -46,6 +66,8 @@ public class Jogo extends ApplicationAdapter {
 		personagem[1] = new Texture("personagem2m1.png");
 		personagem[2] = new Texture("personagem2m2.png");
 		pequi = new Texture("pequi.png");
+
+
 
 	}
 
@@ -61,16 +83,16 @@ public class Jogo extends ApplicationAdapter {
 
 		if( toqueTela ){
 			gravidade = 25;
-
+			bg = (bg==2)?0:++bg;
 		}
 
-		if(posicaoInicialVerticalPersonagem > 0 || toqueTela ) {
-			if(posicaoInicialVerticalPersonagem + gravidade <=0)
+		if(posPersonagemY > 0 || toqueTela ) {
+			if(posPersonagemY + gravidade <=0)
 			{
-				posicaoInicialVerticalPersonagem = 0;
+				posPersonagemY = 0;
 			}
 			else {
-				posicaoInicialVerticalPersonagem = posicaoInicialVerticalPersonagem + gravidade;
+				posPersonagemY = posPersonagemY + gravidade;
 			}
 		}
 		desenharTexturas();
@@ -87,6 +109,7 @@ public class Jogo extends ApplicationAdapter {
 		posicaoTela = posicaoTela - Gdx.graphics.getDeltaTime()*200;
 		if(posicaoTela <= 0){
 			posicaoTela = larguraDispositivo;
+			posicaoFruta = random.nextInt((int) alturaDispositivo-pequi.getHeight());
 		}
 	}
 
@@ -97,10 +120,22 @@ public class Jogo extends ApplicationAdapter {
 
 
 	private void desenharTexturas(){
-		batch.draw(fundo[1],posicaoTela,0, larguraDispositivo, alturaDispositivo);
-		batch.draw(fundo[1],posicaoTela-larguraDispositivo,0, larguraDispositivo, alturaDispositivo);
-		batch.draw(personagem[0], 0, posicaoInicialVerticalPersonagem);
-		batch.draw(pequi, posicaoTela, 300);
+		batch.draw(fundo[bg],posicaoTela,0, larguraDispositivo, alturaDispositivo);
+		batch.draw(fundo[bg],posicaoTela-larguraDispositivo,0, larguraDispositivo, alturaDispositivo);
+		batch.draw(personagem[0], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
+		batch.draw(pequi, posicaoTela, posicaoFruta);
+
+		switch (bg){
+			case 0:
+				textoEstado0.draw(batch, "Seu pedido está em produção", 0, (int)(alturaDispositivo*0.9));
+				break;
+			case 1:
+				textoEstado1.draw(batch, "Seu pedido saiu para entrega", 0, (int)(alturaDispositivo*0.9));
+				break;
+			case 2:
+				textoEstado2.draw(batch, "Seu pedido chegou!", 0, (int)(alturaDispositivo*0.9));
+				break;
+		}
 
 
 
