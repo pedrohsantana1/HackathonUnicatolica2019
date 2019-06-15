@@ -22,6 +22,7 @@ public class Jogo extends ApplicationAdapter {
 	private Texture[] personagem;
 	private Texture[] alimento;
 	private Texture[] obstaculo;
+	private Texture porta;
 	private BitmapFont textoScore;
 	private BitmapFont textoProducaoAviso;
     private BitmapFont textoEntregaAviso;
@@ -35,6 +36,8 @@ public class Jogo extends ApplicationAdapter {
 	private ShapeRenderer shapeRenderer;
 	private Circle circuloPersonagem;
 	private Circle circuloAlimento;
+    private Circle circuloPersonagem2;
+    private Circle circuloObstaculo;
 
 	//Atributos de configuração
 	private float larguraDispositivo;
@@ -45,6 +48,7 @@ public class Jogo extends ApplicationAdapter {
 	private int estadoJogo = 0;
 	private int pontos = 0;
 	private int velocidade = 3;
+	private float inicial=0;
 
 	private float posPersonagemY;
 	private float posPersonagemX;
@@ -52,11 +56,13 @@ public class Jogo extends ApplicationAdapter {
 	private float posicaoObstaculoHorizontal = larguraDispositivo;
 	private int posAlimentoY;
 	private float gravidadePersonagem = 0;
+	private float posPulo=0;
 	private int objeto = 0;
 
 	private double tempoInicial;
 	private float tempoTotal;
 	private double tempoInicialItem;
+	private double tempoInicialInvencibilidade;
 
 	private boolean teste = false;
 	
@@ -72,6 +78,8 @@ public class Jogo extends ApplicationAdapter {
 		larguraDispositivo = Gdx.graphics.getWidth();
 		alturaDispositivo = Gdx.graphics.getHeight();
 		posPersonagemY = (int)(alturaDispositivo*0.2);
+        inicial = (int)(alturaDispositivo*0.2);
+        posPulo = (int)(alturaDispositivo*0.2);
 		posPersonagemX  = larguraDispositivo/2;
 		posTelaX = larguraDispositivo;
 		random = new Random();
@@ -95,6 +103,8 @@ public class Jogo extends ApplicationAdapter {
 		shapeRenderer = new ShapeRenderer();
 		circuloPersonagem = new Circle();
 		circuloAlimento = new Circle();
+        circuloPersonagem2 = new Circle();
+        circuloObstaculo = new Circle();
 		itens = new ArrayList<Item>();
 
 
@@ -105,6 +115,9 @@ public class Jogo extends ApplicationAdapter {
 		fundo[0] = new Texture("fundo1.png");
 		fundo[1] = new Texture("fundo2.png");
 		fundo[2] = new Texture("fundo3.png");
+
+		porta = new Texture("casa.png");
+
 		personagem = new Texture[3];
 		personagem[0] = new Texture("personagem1.png");
 		personagem[1] = new Texture("personagem2m1.png");
@@ -141,6 +154,7 @@ public class Jogo extends ApplicationAdapter {
 				tempoTotal = 100;
 				tempoInicial = System.currentTimeMillis();
 				tempoInicialItem = System.currentTimeMillis();
+				tempoInicialInvencibilidade = System.currentTimeMillis();
 				
 				estadoJogo = 1;
 				break;
@@ -154,7 +168,7 @@ public class Jogo extends ApplicationAdapter {
 					item.y -= velocidade;
 				}
 				if(System.currentTimeMillis() - tempoInicial >= tempoTotal){
-					tempoTotal = 100000;
+					tempoTotal = 100;
 					tempoInicial = System.currentTimeMillis();
 					estadoJogo = 2;
 					estadoBg = 1;
@@ -162,7 +176,7 @@ public class Jogo extends ApplicationAdapter {
 				break;
 			case 2: // Em entrega
 				if(System.currentTimeMillis() - tempoInicial >= tempoTotal){
-					tempoTotal = 7000;
+					tempoTotal = 100;
 					tempoInicial = System.currentTimeMillis();
 					estadoJogo = 3;
 					estadoBg = 2;
@@ -170,8 +184,10 @@ public class Jogo extends ApplicationAdapter {
 				}
                 boolean toqueTela2 = Gdx.input.isTouched();
                 if( toqueTela2 ) {
-                    gravidadePersonagem = 10;
+                    gravidadePersonagem = 2;
                 }
+                if( posPersonagemY > alturaDispositivo*0.2  || toqueTela2 )
+                    posPulo = posPulo + gravidadePersonagem;
 
                 break;
 			case 3: // Chegou
@@ -179,8 +195,7 @@ public class Jogo extends ApplicationAdapter {
 				break;
 		}
 
-		//if(gravidadePersonagem <= posPersonagemY )
-          //  gravidadePersonagem = 0;
+
 		boolean toqueTela = Gdx.input.isTouched();
 
 		if( toqueTela ) {
@@ -198,6 +213,17 @@ public class Jogo extends ApplicationAdapter {
 		movimentarFundo();
 		movimentaObstaculo();
 
+        if(posPulo > inicial) {
+            gravidadePersonagem--;
+            if((posPulo+gravidadePersonagem)<inicial)
+            {
+                gravidadePersonagem = 0;
+                posPulo = inicial;
+            }
+
+        }
+
+        Gdx.app.log("dados", "posPersonagemY: "+(posPulo+gravidadePersonagem) + "outos "+inicial);
 		batch.end();
 
 	}
@@ -243,17 +269,25 @@ public class Jogo extends ApplicationAdapter {
             itens.remove(tempColisao);
         }
 
+        circuloPersonagem2.set(larguraDispositivo/2 - personagem[1].getWidth()/2, posPulo + personagem[1].getHeight()/2, personagem[estadoBg].getHeight()/2);
+        circuloObstaculo.set(posicaoObstaculoHorizontal + obstaculo[objeto].getWidth()/2,inicial+obstaculo[objeto].getHeight()/2, obstaculo[objeto].getWidth()/2);
 
+        boolean colidiuObjetos2 = Intersector.overlaps(circuloPersonagem2, circuloObstaculo);
+        if(colidiuObjetos2 && System.currentTimeMillis()-tempoInicialInvencibilidade>2000 && estadoJogo == 1)
+        {
+            pontos--;
+            Gdx.app.log("bat","okdd");
+            tempoInicialInvencibilidade = System.currentTimeMillis();
 
-
+        }
 
 //		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 //		shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.BLACK);
-//        for (Item item : itens) {
-//                shapeRenderer.circle( item.x + alimento[item.type].getWidth()/2 , item.y+ alimento[item.type].getHeight()/2, alimento[item.type].getWidth()/2);
-//        }
-//		shapeRenderer.circle( posPersonagemX + personagem[estadoBg].getWidth() / 2, posPersonagemY + personagem[estadoBg].getHeight()/2, personagem[estadoBg].getHeight()/2);
-//		shapeRenderer.end();
+//
+////		//shapeRenderer.circle();
+////		shapeRenderer.circle( larguraDispositivo/2 - personagem[1].getWidth()/2, posPulo + personagem[1].getHeight()/2, personagem[estadoBg].getHeight()/2);
+////		shapeRenderer.circle(posicaoObstaculoHorizontal + obstaculo[objeto].getWidth()/2,inicial+obstaculo[objeto].getHeight()/2, obstaculo[objeto].getWidth()/2);
+////		shapeRenderer.end();
 	}
 
 	private void novoAlimento(int x, int y, int type){
@@ -307,20 +341,23 @@ public class Jogo extends ApplicationAdapter {
 				batch.draw(fundo[1],posTelaX,0, larguraDispositivo, alturaDispositivo);
 				batch.draw(fundo[1],posTelaX-larguraDispositivo,0, larguraDispositivo, alturaDispositivo);
 
-				batch.draw(personagem[1], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY+gravidadePersonagem);
+				batch.draw(personagem[1], larguraDispositivo/2-personagem[0].getWidth(), posPulo+gravidadePersonagem);
 				batch.draw(obstaculo[objeto],posicaoObstaculoHorizontal, posPersonagemY - personagem[1].getHeight()/4);
 
                 textoEntregaAviso.draw(batch, "Desvie dos objetos você pode ganhar frete grátis ",
                         larguraDispositivo/2+50 - textoProducao.getWidth() , alturaDispositivo -
                                 textoProducao.getHeight() - textoProducao.getHeight()/2 - 15);
 				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
-                batch.draw(textoEntrega,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
+                batch.draw(textoEntrega,larguraDispositivo/2 , alturaDispositivo - textoProducao.getHeight()-50);
 				break;
 			case 2:
 				batch.draw(fundo[2],0,0, larguraDispositivo, alturaDispositivo);
+				batch.draw(porta,larguraDispositivo*0.7f/2 - porta.getWidth()/2, larguraDispositivo*0.7f/2,
+                        larguraDispositivo*0.7f,larguraDispositivo*0.7f);
 
 				batch.draw(personagem[2], larguraDispositivo/2-personagem[0].getWidth(), posPersonagemY);
-				textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
+				//batch.draw();
+				//textoScore.draw(batch, "Score: "+pontos,larguraDispositivo/2 - textoProducao.getWidth()/2 + 50 , alturaDispositivo - textoProducao.getHeight()-100);
                 batch.draw(textoChegou,larguraDispositivo/2 - textoProducao.getWidth()/2, alturaDispositivo - textoProducao.getHeight()-50);
 				break;
 		}
